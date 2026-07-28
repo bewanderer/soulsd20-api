@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 
 LOCK_GRACE_DAYS = 32
@@ -150,6 +151,11 @@ class UserProfile(models.Model):
     def apply_patreon_status(self, new_status, last_charge_date, actor='system', note=''):
         """Update subscription state after a Patreon check. Writes an audit row.
         Rolls lock_date to last_charge_date + LOCK_GRACE_DAYS when active."""
+        # Patreon sends dates as ISO strings. Accept either a string or a
+        # datetime and normalize so the arithmetic below always has real dates.
+        if isinstance(last_charge_date, str):
+            last_charge_date = parse_datetime(last_charge_date)
+
         old_status = self.subscription_status
         old_lock_date = self.lock_date
 

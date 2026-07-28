@@ -10,6 +10,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 from django.shortcuts import redirect
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 import requests
 import urllib.parse
 
@@ -662,7 +663,8 @@ def refresh_patreon_status(request):
         if membership:
             member_attrs = membership.get('attributes', {})
             profile.subscription_status = _map_patron_status(member_attrs.get('patron_status'))
-            profile.last_charge_date = member_attrs.get('last_charge_date')
+            raw_last_charge = member_attrs.get('last_charge_date')
+            profile.last_charge_date = parse_datetime(raw_last_charge) if isinstance(raw_last_charge, str) else raw_last_charge
             profile.last_charge_status = member_attrs.get('last_charge_status')
 
             tier_cents = member_attrs.get('currently_entitled_amount_cents', 0)
