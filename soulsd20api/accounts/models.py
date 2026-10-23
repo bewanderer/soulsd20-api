@@ -1,4 +1,5 @@
 import binascii
+import hashlib
 import os
 import uuid
 from datetime import timedelta
@@ -9,6 +10,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+
+from .fields import EncryptedTextField
 
 
 LOCK_GRACE_DAYS = 32
@@ -62,8 +65,8 @@ class UserProfile(models.Model):
         unique=True
     )
     patreon_email = models.EmailField(blank=True, null=True)
-    patreon_access_token = models.TextField(blank=True, null=True)
-    patreon_refresh_token = models.TextField(blank=True, null=True)
+    patreon_access_token = EncryptedTextField(blank=True, null=True)
+    patreon_refresh_token = EncryptedTextField(blank=True, null=True)
 
     # Subscription tracking
     subscription_status = models.CharField(
@@ -313,13 +316,22 @@ class AuthToken(models.Model):
         return f"{self.source} token for {self.user.username}"
 
     def save(self, *args, **kwargs):
+        # Only the digest is stored. The raw key exists on this instance
+        # (raw_key) just long enough to be returned to the client once.
         if not self.key:
-            self.key = self.generate_key()
+            self.raw_key = self.generate_key()
+            self.key = self.hash_key(self.raw_key)
         super().save(*args, **kwargs)
 
     @staticmethod
     def generate_key():
         return binascii.hexlify(os.urandom(20)).decode()
+
+    @staticmethod
+    def hash_key(raw_key):
+        # 160 bits of SHA-256 in hex: fits the existing 40-char column and
+        # matches the 160 bits of randomness in the key itself.
+        return hashlib.sha256(raw_key.encode()).hexdigest()[:40]
 
 
 class PairingCode(models.Model):

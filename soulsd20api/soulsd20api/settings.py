@@ -232,3 +232,18 @@ PATREON_REDIRECT_URI = os.environ.get('PATREON_REDIRECT_URI', 'http://localhost:
 PATREON_CAMPAIGN_ID = os.environ.get('PATREON_CAMPAIGN_ID', '')
 
 
+# =============================================================================
+# Encryption at rest for secrets stored in the database (Patreon OAuth tokens)
+# =============================================================================
+# Production must set FIELD_ENCRYPTION_KEY (a Fernet key). Local development
+# without it gets a per-process key: values encrypted locally become
+# unreadable after a restart and read as empty.
+FIELD_ENCRYPTION_KEY = os.environ.get('FIELD_ENCRYPTION_KEY', '')
+if not FIELD_ENCRYPTION_KEY:
+    if not DEBUG:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured('FIELD_ENCRYPTION_KEY must be set when DEBUG is off.')
+    from cryptography.fernet import Fernet
+    FIELD_ENCRYPTION_KEY = Fernet.generate_key().decode()
+
+

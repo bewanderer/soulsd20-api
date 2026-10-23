@@ -196,7 +196,7 @@ def login(request):
     profile.save(update_fields=['last_login'])
 
     return Response({
-        'token': token.key,
+        'token': token.raw_key,
         'user': MeSerializer(profile).data
     })
 
@@ -317,7 +317,7 @@ def foundry_pair_redeem(request):
     pairing.save(update_fields=['redeemed_at'])
 
     return Response({
-        'token': token.key,
+        'token': token.raw_key,
         'user': MeSerializer(profile).data
     })
 
@@ -380,7 +380,7 @@ def register(request):
     )
 
     return Response({
-        'token': token.key,
+        'token': token.raw_key,
         'user': MeSerializer(user.profile).data
     }, status=status.HTTP_201_CREATED)
 
@@ -596,7 +596,7 @@ def patreon_callback(request):
     )
 
     return Response({
-        'token': token.key,
+        'token': token.raw_key,
         'user': MeSerializer(profile).data,
         'is_new_user': is_new_user
     })

@@ -183,7 +183,7 @@ class UserProfileAdmin(admin.ModelAdmin):
             'fields': ('user_type', 'is_admin')
         }),
         ('Patreon Integration', {
-            'fields': ('patreon_id', 'patreon_email', 'patreon_access_token', 'patreon_refresh_token'),
+            'fields': ('patreon_id', 'patreon_email'),
             'classes': ('collapse',)
         }),
         ('Subscription Status', {

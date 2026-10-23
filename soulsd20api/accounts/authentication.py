@@ -18,7 +18,8 @@ class ExpiringTokenAuthentication(TokenAuthentication):
         return AuthToken
 
     def authenticate_credentials(self, key):
-        user, token = super().authenticate_credentials(key)
+        # Only the digest of each key is stored, so look up by digest.
+        user, token = super().authenticate_credentials(AuthToken.hash_key(key))
 
         now = timezone.now()
         sliding_hours = getattr(settings, 'TOKEN_SLIDING_WINDOW_HOURS', 24)

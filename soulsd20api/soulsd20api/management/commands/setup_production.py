@@ -1,6 +1,7 @@
 """
 One-time production setup command.
-Loads compendium fixtures and creates the initial superuser.
+Loads compendium fixtures and, when credentials are supplied through the
+environment, creates the initial superuser.
 Skips safely if data already exists.
 """
 import os
@@ -29,7 +30,7 @@ FIXTURES = [
 
 
 class Command(BaseCommand):
-    help = 'Load compendium fixtures and create initial superuser'
+    help = 'Load compendium fixtures and create the initial superuser from environment variables'
 
     def handle(self, *args, **options):
         # Load fixtures
@@ -46,26 +47,30 @@ class Command(BaseCommand):
         else:
             self.stdout.write('Compendium data already exists, skipping fixtures.')
 
-        # Create superuser
-        if not User.objects.filter(username='bell').exists():
-            user = User.objects.create_superuser(
-                username='bell',
-                email='belminsestic55@gmail.com',
-                password='Kjhhjkkk1!'
-            )
-            self.stdout.write(self.style.SUCCESS(f'Superuser "bell" created.'))
+        # Create the superuser only from environment variables; credentials
+        # never live in code (this repository is public).
+        username = os.environ.get('DJANGO_SUPERUSER_USERNAME')
+        password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+        email = os.environ.get('DJANGO_SUPERUSER_EMAIL', '')
+        if not (username and password):
+            self.stdout.write('DJANGO_SUPERUSER_USERNAME/PASSWORD not set, skipping superuser creation.')
+            return
+        if User.objects.filter(username=username).exists():
+            self.stdout.write(f'Superuser "{username}" already exists, skipping.')
+            return
 
-            # Create UserProfile for the superuser
-            from accounts.models import UserProfile
-            if not hasattr(user, 'profile'):
-                UserProfile.objects.create(
-                    user=user,
-                    user_type='permanent',
-                    subscription_status='active_patron',
-                    is_admin=True,
-                    max_characters=50,
-                    max_campaigns_as_gm=20,
-                )
-                self.stdout.write(self.style.SUCCESS('UserProfile created for "bell".'))
-        else:
-            self.stdout.write('Superuser "bell" already exists, skipping.')
+        user = User.objects.create_superuser(username=username, email=email, password=password)
+        self.stdout.write(self.style.SUCCESS(f'Superuser "{username}" created.'))
+
+        # Create UserProfile for the superuser
+        from accounts.models import UserProfile
+        if not hasattr(user, 'profile'):
+            UserProfile.objects.create(
+                user=user,
+                user_type='permanent',
+                subscription_status='active_patron',
+                is_admin=True,
+                max_characters=50,
+                max_campaigns_as_gm=20,
+            )
+            self.stdout.write(self.style.SUCCESS(f'UserProfile created for "{username}".'))
